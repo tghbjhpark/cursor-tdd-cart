@@ -1,0 +1,38 @@
+---
+description: Dual-Track TDD(RED·GREEN·REFACTOR) · C2C 추적 작업 규칙
+alwaysApply: true
+---
+
+# 작업 규칙 (항상 적용)
+
+- 사이클은 항상 RED → GREEN → REFACTOR 순서를 따른다.
+- 가장 단순한 실패 테스트부터 쓰고, 통과시킬 최소 코드만 구현하고,
+  전부 통과한 뒤에만 리팩터링한다.
+- 구현 줄에는 충족한 계약 ID(INV-*/E-*)를 주석으로 단다.
+- 구조적 변경과 동작적 변경을 한 커밋에 섞지 않는다(구조 먼저).
+- 테스트를 수정·삭제·비활성화하거나 assert True/skip 으로 우회하지 않는다.
+- 요청하지 않은 기능을 추가하지 않는다. 작업 끝에 `pytest -q` 로 전부 통과를 확인한다.
+
+## 단계별 제약
+
+| 단계 | 수정 범위 | 목표 |
+|------|-----------|------|
+| RED | `tests/` 만 | 실패하는 테스트 추가 |
+| GREEN | `src/` | 최소 구현으로 통과 |
+| REFACTOR | 구조 정리 | 리팩터 전후 `pytest -q`로 동작 불변 확인 |
+
+## 예시
+
+```python
+# GREEN — src/cart.py
+def apply_discount(subtotal: int) -> int:
+    return subtotal  # INV-001: 소계는 음수가 아니다
+```
+
+```python
+# ❌ 금지
+def test_placeholder():
+    assert True  # 우회
+
+# ❌ 금지 — RED 단계에서 src/ 수정
+```

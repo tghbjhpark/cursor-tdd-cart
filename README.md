@@ -145,6 +145,72 @@ pytest -q   # T1–T8 전부 통과 (실패 0)
 
 **커밋 분리 예:** `test(RED)` → `feat(GREEN)` → `refactor` — [테스트 플랜 §7](docs/TEST_PLAN-INV-1-E-1-E-2.md) 참고
 
+## REFACTOR 계획 (Track B · subtotal)
+
+T1–T8 GREEN 완료 후 적용할 **구조 정리** 계획입니다. 동작은 바꾸지 않고 E-2 검증만 private helper로 분리합니다.
+
+### 목적
+
+- **Mixed Responsibilities** 해소 — E-2(음수 `price`/`qty` 검증)만 `_validate_line_items(items)`로 추출
+- E-1(`items is None → TypeError`)은 `subtotal` 진입점에 **유지**
+
+### 변경 범위
+
+| 항목 | 내용 |
+|------|------|
+| 변경 파일 | `src/cart.py`만 |
+| 테스트 | `tests/` 수정 없음 |
+| 예상 diff | `cart.py` **+3~5줄** (helper 추가 + `subtotal`에서 E-2 분기 제거·호출 추가) |
+
+### 제외
+
+- `sum()` 변환
+- 상수·메시지 문자열 추출
+- `apply_threshold_discount` / `final_total` / `THRESHOLD` 등 INV-2 이후 코드
+
+### 작업 순서
+
+1. REFACTOR **전** `pytest -q` — GREEN 확인
+2. `_validate_line_items(items)` 추가 — E-2 루프·`ValueError` f-string·`# E-2` 주석 **그대로** 이동
+3. `subtotal` — E-1 유지 → `_validate_line_items(items)` 호출 → INV-1 합산 루프만 유지
+4. REFACTOR **후** `pytest -q` — GREEN·동작 불변 재확인
+
+### 동작 불변 체크리스트
+
+리팩터 전·후 아래가 **동일**해야 합니다.
+
+**E-1 — `TypeError`**
+
+| 입력 | 기대 |
+|------|------|
+| `subtotal(None)` | `TypeError`, 메시지 `"items must not be None"` |
+
+**E-2 — `ValueError` (0-based 인덱스 메시지)**
+
+| 입력 | 메시지에 포함 |
+|------|---------------|
+| `[(12_000, -1)]` | `0` |
+| `[(-100, 1)]` | `0` |
+| `[(10_000, 1), (5_000, -2)]` | `1` |
+| `[(-1, -1)]` | `0` |
+
+형식: `"invalid item at index {i}"`
+
+**INV-1 — 합계 (T1–T3)**
+
+| 입력 | 기대 |
+|------|------|
+| `[]` | `0` |
+| `[(10_000, 2)]` | `20_000` |
+| `[(12_000, 3), (30_000, 1)]` | `66_000` |
+
+### 완료 기준
+
+- [ ] REFACTOR 전·후 `pytest -q` 모두 GREEN (실패 0)
+- [ ] §동작 불변 체크리스트 전 항목 일치
+- [ ] `tests/` diff 없음
+- [ ] 커밋은 구조 변경만 (`refactor:`) — GREEN 커밋과 분리
+
 ## 테스트 실행
 
 ```bash
